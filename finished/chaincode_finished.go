@@ -1,29 +1,16 @@
-/*
-Copyright IBM Corp 2016 All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-		 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 
 package main
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
+
 	"errors"
 	"fmt"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
 
-// SimpleChaincode example simple Chaincode implementation
 type SimpleChaincode struct {
 }
 
@@ -40,7 +27,7 @@ func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface, function string
 		return nil, errors.New("Incorrect number of arguments. Expecting 1")
 	}
 
-	err := stub.PutState("hello_world", []byte(args[0]))
+	err := stub.PutState("secret", []byte(args[0]))
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +57,10 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	// Handle different functions
 	if function == "read" { //read a variable
 		return t.read(stub, args)
+	} else if function == "decrypt" {
+		return t.decrypt(stub, args)
 	}
+
 	fmt.Println("query did not find func: " + function)
 
 	return nil, errors.New("Received unknown function query: " + function)
@@ -112,4 +102,48 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 	}
 
 	return valAsbytes, nil
+}
+
+func (t *SimpleChaincode) decrypt(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	//var jsonResp string
+	var err error
+	var ciphertext []byte
+
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting name of the key to query")
+	}
+
+	ciphertext = []byte(args[0])
+
+	//key, err := stub.GetState("secret")
+	//if err != nil {
+	//	jsonResp = "{\"Error\":\"Failed to get state for " + key + "\"}"
+	//	return nil, errors.New(jsonResp)
+	//}
+
+	secret := []byte("abcdefghijklmnopqrstuvwxyz012345")
+	iv := []byte("abcdefghijklmnop")
+
+	block, err := aes.NewCipher(secret)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(ciphertext) < aes.BlockSize {
+		panic("ciphertext too short")
+	}
+
+	// CBC mode always works in whole blocks.
+	if len(ciphertext)%aes.BlockSize != 0 {
+		panic("ciphertext is not a multiple of the block size")
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+
+	// CryptBlocks can work in-place if the two arguments are the same.
+	mode.CryptBlocks(ciphertext, ciphertext)
+
+	fmt.Printf("%s\n", ciphertext)
+	// Output: exampleplaintext
+	return ciphertext, nil
 }
