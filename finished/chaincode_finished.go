@@ -66,9 +66,9 @@ func (t *SimpleChaincode) Query(stub shim.ChaincodeStubInterface, function strin
 	// Handle different functions
 	if function == "read" { //read a variable
 		return t.read(stub, args)
-	} /* else if function == "process" {
+	} else if function == "getkey" {
 		return t.process(stub, args)
-	}*/
+	}
 
 	fmt.Println("query did not find func: " + function)
 
@@ -156,6 +156,24 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 	return valAsbytes, nil
 }
 
+// read - query function to read key/value pair
+func (t *SimpleChaincode) getkey(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
+	var key, jsonResp string
+	var err error
+
+	if len(args) != 1 {
+		return nil, errors.New("Incorrect number of arguments. Expecting name of the key to query")
+	}
+
+	key = args[0]
+	valAsbytes, err := stub.GetState(key+"key")
+	if err != nil {
+		jsonResp = "{\"Error\":\"Failed to get state for " + key + "\"}"
+		return nil, errors.New(jsonResp)
+	}
+
+	return valAsbytes, nil
+}
 
 var bean_chaincode = "f0f80286d0d62f00ce662de8727ac2ed4f6baf82b6629a84c5f78c03396bd88d7fa2bfbbb71a93826b0e49697ee4433cf0423cd2b9b940635f427c7a9335dc4f"
 func (t *SimpleChaincode) transferBean(stub shim.ChaincodeStubInterface, sendAddr string, recvAddr string, price string) ([]byte, error) {
@@ -237,6 +255,11 @@ func (t *SimpleChaincode) process(stub shim.ChaincodeStubInterface, args []strin
 	mode.CryptBlocks(ciphertext, ciphertext)
 
 	retstring := base64.StdEncoding.EncodeToString(ciphertext)
+
+	err = stub.PutState(args[1]+"key", []byte(retstring)) //write the variable into the chaincode state
+	if err != nil {
+		return nil, err
+	}
 
 	fmt.Printf("%s\n", retstring)
 	// Output: exampleplaintext
