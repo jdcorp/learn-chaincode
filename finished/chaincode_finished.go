@@ -157,7 +157,7 @@ func (t *SimpleChaincode) read(stub shim.ChaincodeStubInterface, args []string) 
 }
 
 
-var bean_chaincode = "aefd9380f93853205adcebb9fccc85873c469bce5912aa910350e1bb96adbf248aa7e8a401df098277abb1e344241a77f81f1e59764825f94d1a82605bc0e91e"
+var bean_chaincode = "f0f80286d0d62f00ce662de8727ac2ed4f6baf82b6629a84c5f78c03396bd88d7fa2bfbbb71a93826b0e49697ee4433cf0423cd2b9b940635f427c7a9335dc4f"
 func (t *SimpleChaincode) transferBean(stub shim.ChaincodeStubInterface, sendAddr string, recvAddr string, price string) ([]byte, error) {
 	f := "transferBean"
 	invokeArgs := util.ToChaincodeArgs(f, sendAddr, recvAddr, price)
